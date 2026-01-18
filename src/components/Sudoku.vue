@@ -8,7 +8,12 @@
           'sudoku_cursor': x == cursor[0] + 1 && y == cursor[1] + 1
         }" @click="select_cursor(x - 1, y - 1)">
         <p class="sudoku_number">
-          {{ get_value(x - 1, y - 1, currentStep == 0) == 0 ? '' : get_value(x - 1, y - 1, currentStep == 0) }}
+          <span v-if="get_value(x - 1, y - 1, true) != 0">
+            {{ get_value(x - 1, y - 1, true) }}
+          </span>
+          <span v-else style="color: blue">
+            {{ get_value(x - 1, y - 1, currentStep == 0) == 0 ? '' : get_value(x - 1, y - 1, currentStep == 0) }}
+          </span>
         </p>
       </v-col>
     </v-row>
@@ -21,28 +26,22 @@ export default {
   name: 'HelloWorld',
 
   mounted(){
-    for(let i = 0; i < 81; i++){
-      this.init[i] = 0
-      this.answer[i] = 0
-    }
     this.loop_handler = setInterval(this.loop, this.timer)
     addEventListener("keydown", this.keydown)
   },
   unmounted(){
     clearInterval(this.loop_handler)
   },
-
   props: {
     step: Number,
+    init: Array,
+    answer: Array,
     type: Number,
   },
-  emits: ['finish'],
+  emits: ['finish', 'update:init', 'update:answer'],
   data: () => ({
     currentStep: 0,
-    // Init value of the grid
-    init: [] ,
-    // Trying to answer
-    answer: [],
+    
     // Interval handler
     loop_handler: undefined,
     // Update step, 1000 => 1 sec
@@ -54,17 +53,6 @@ export default {
     update_handler(){
       clearInterval(this.loop_handler)
       this.loop_handler = setInterval(this.loop, this.timer)
-    },
-    answer_reset(){
-      for(let i = 0; i < 81; i++){
-        this.answer[i] = this.init[i]
-      }
-    },
-    total_reset(){
-      for(let i = 0; i < 81; i++){
-        this.init[i] = 0
-        this.answer[i] = 0
-      }
     },
     get_grid(x, y){
       return [
@@ -106,10 +94,6 @@ export default {
       //console.log(this.get_grid(0, 0))
       if(this.currentStep != this.step){
         this.currentStep = this.step
-
-        if(this.currentStep == 0){
-          this.answer_reset()
-        }
       }
 
       if(this.currentStep != 2) return;
@@ -127,9 +111,9 @@ export default {
     },
     set_value(x, y, v, init=false){
       if(init){
-        this.init[y * 9 + x] = v
+        this.$emit('update:init', y * 9 + x, v)
       }else{
-        this.answer[y * 9 + x] = v
+        this.$emit('update:answer', y * 9 + x, v)
       }
     },
     get_value(x, y, init=false){
@@ -153,7 +137,7 @@ export default {
         this.cursor[0] += 1
       }
 
-      else if(event.key >= '0'&& event.key <= '9'){
+      if(event.key >= '0'&& event.key <= '9'){
         this.set_value(this.cursor[0], this.cursor[1], Number(event.key), this.currentStep == 0)
       }
     }
